@@ -9,3 +9,237 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  CANDIDATE
+  RECRUITER
+  ADMIN
+}
+
+enum Language {
+  EN
+  RU
+}
+
+enum Theme {
+  DARK
+  LIGHT
+}
+
+enum AttributeDataType {
+  STRING
+  NUMBER
+  BOOLEAN
+  DATE
+  PERIOD
+  ONE_OF_MANY
+  TEXT
+  IMAGE
+}
+
+enum AttributeCategory {
+  CERTIFICATION
+  DOMAIN_KNOWLEDGE
+  SOFT_SKILL
+  PERSONAL_INFORMATION
+}
+
+enum CVStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum PositionLevel {
+  JUNIOR
+  MIDDLE
+  SENIOR
+  C_LEVEL
+}
+
+enum AccessRuleOperation {
+  GREATER
+  LESS
+  EQUAL
+  CHECKED
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  email      String   @unique
+  password   String?
+  role       Role     @default(CANDIDATE)
+  language   Language @default(EN)
+  theme      Theme    @default(DARK)
+  isBlocked  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  provider   String?
+  providerId String?
+
+  attributeValues AttributeValue[]
+  positions       Position[]
+  projects        Project[]
+  cvs             CV[]
+  likes           Like[]
+  discussions     Discussion[]
+
+  @@unique([provider, providerId])
+}
+
+model Attribute {
+  id          Int               @id @default(autoincrement())
+  name        String            @unique
+  category    AttributeCategory
+  description String
+  dataType    AttributeDataType
+  options     Json?
+  isBuiltIn   Boolean           @default(false)
+  version     Int               @default(1)
+
+  attributeValues    AttributeValue[]
+  positionAttributes PositionAttribute[]
+  accessRules        AccessRule[]
+}
+
+model AttributeValue {
+  id               Int       @id @default(autoincrement())
+  userId           Int
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attributeId      Int
+  attribute        Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  valueString      String?
+  valueNumber      Decimal?
+  valueBoolean     Boolean?
+  valueDate        DateTime?
+  valuePeriodStart DateTime?
+  valuePeriodEnd   DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  version          Int       @default(1)
+
+  @@unique([userId, attributeId])
+}
+
+model Position {
+  id          Int            @id @default(autoincrement())
+  ownerId     Int
+  owner       User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  title       String
+  company     String
+  level       PositionLevel?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  version     Int            @default(1)
+  isPublic    Boolean        @default(false)
+  maxProjects Int?
+
+  positionAttributes PositionAttribute[]
+  positionTags       PositionTag[]
+  accessRules        AccessRule[]
+  cvs                CV[]
+  discussions        Discussion[]
+}
+
+model Project {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  periodStart DateTime
+  periodEnd   DateTime?
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  projectTags ProjectTag[]
+}
+
+model Tag {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  positionTags PositionTag[]
+  projectTags  ProjectTag[]
+}
+
+model PositionAttribute {
+  id          Int       @id @default(autoincrement())
+  positionId  Int
+  position    Position  @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  attributeId Int
+  attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, attributeId])
+}
+
+model PositionTag {
+  id         Int      @id @default(autoincrement())
+  positionId Int
+  position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  tagId      Int
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, tagId])
+}
+
+model ProjectTag {
+  id        Int     @id @default(autoincrement())
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tagId     Int
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, tagId])
+}
+
+model AccessRule {
+  id             Int                 @id @default(autoincrement())
+  positionId     Int
+  position       Position            @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  attributeId    Int
+  attribute      Attribute           @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  operation      AccessRuleOperation
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  compareNumber  Decimal?
+  compareString  String?
+  compareBoolean Boolean?
+  compareDate    DateTime?
+
+  @@unique([positionId, attributeId])
+}
+
+model CV {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  positionId Int
+  position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  status     CVStatus @default(DRAFT)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  version    Int      @default(1)
+
+  likes Like[]
+
+  @@unique([userId, positionId])
+}
+
+model Like {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cvId   Int
+  cv     CV   @relation(fields: [cvId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cvId])
+}
+
+model Discussion {
+  id          Int      @id @default(autoincrement())
+  positionId  Int
+  position    Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  authorId    Int
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  textContent String
+}
