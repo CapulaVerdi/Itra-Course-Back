@@ -2,6 +2,8 @@ import "dotenv/config";
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client.ts";
+import bcrypt from 'bcrypt'
+import { use } from "react";
 
 const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString });
@@ -31,6 +33,19 @@ const builtInAttributes = [
     dataType: "IMAGE",
   }
 ]
+const passwordHash = await bcrypt.hash("123456", 10)
+const users = [
+  {
+    email: "candidate@test.com",
+    password: passwordHash,
+    role: "CANDIDATE",
+  },
+  {
+    email: "recruiter@test.com",
+    password: passwordHash,
+    role: "RECRUITER",
+  }
+]
 async function main() {
   for (const attribute of builtInAttributes) {
     const result = await prisma.attribute.upsert({
@@ -38,18 +53,33 @@ async function main() {
       update: {
         category: attribute.category,
         description: attribute.description,
-        dataType: attribute.dataType,
+        dataType: attribute.dataType
       },
       create: {
         name: attribute.name,
         category: attribute.category,
         description: attribute.description,
         dataType: attribute.dataType,
-        isBuiltIn: true,
+        isBuiltIn: true
       }
     });
     console.log({result});
   } 
+  for (const user of users) {
+    const result = await prisma.user.upsert({
+      where: { email: user.email },
+      update: {
+        password: user.password,
+        role: user.role
+      },
+      create: {
+        email: user.email,
+        password: user.password,
+        role: user.role
+      }
+    });
+    console.log(result)
+  }
 }
 main()
   .then(async () => {
