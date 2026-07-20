@@ -3,8 +3,16 @@ import 'dotenv/config'
 import attributeRouter from './routes/attribute.route.js';
 import profileRouter from './routes/profile.route.js'
 import { requireAuth } from './middleware/auth.js';
+import cors from 'cors';
 
 const app = express();
+
+app.use(cors({
+    origin: [
+        'https://itra-course-front.vercel.app', 
+        'http://localhost:5173'
+    ]
+}));
 
 app.use(express.json())
 
