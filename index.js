@@ -1,16 +1,21 @@
 import express from 'express'
 import 'dotenv/config'
 import attributeRouter from './routes/attribute.route.js';
+import profileRouter from './routes/profile.route.js'
 import { requireAuth } from './middleware/auth.js';
 
 const app = express();
 
 app.use(express.json())
 
-app.use('/attributes', attributeRouter, );
+app.use('/attributes', attributeRouter);
+app.use('/profile', profileRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);
+  if (err.code === "P2002") {res.status(409).json({error: "already exists"}); return}
+  if (err.code === "P2025") {res.status(404).json({error: "not found"}); return}
+  if (err.code === "v409") {res.status(409).json({error: "version conflict"}); return}
   res.status(500).json({error: "Internal server error"});
 });
 

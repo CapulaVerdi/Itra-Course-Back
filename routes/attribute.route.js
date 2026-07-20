@@ -64,4 +64,28 @@ router.patch('/:id', requireAuth, requireRole("ADMIN", "RECRUITER"), async (req,
     
 })
 
+router.delete('/:id', requireAuth, requireRole("ADMIN", "RECRUITER"), async (req, res) => {
+    const result = await prisma.attribute.deleteMany({
+        where: {
+            id: Number(req.params.id),
+            isBuiltIn: false
+        }
+    })
+
+    if (result.count === 1) {
+        res.status(204).json("success")
+    } else {
+        const deletedAttribute = await prisma.attribute.findUnique({
+            where: { id: Number(req.params.id) }
+        })
+        if (!deletedAttribute) {
+            res.status(404).json("not found")
+        } else {
+            res.status(403).json("forbidden")
+        }
+    }
+
+    
+})
+
 export default router
