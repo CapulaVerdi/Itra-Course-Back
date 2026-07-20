@@ -1,7 +1,7 @@
 import express from "express";
 import { prisma } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
-import { AttributeDataType, AttributeCategory } from "../generated/prisma/enums.js"
+import { AttributeDataType, AttributeCategory } from "../generated/prisma/client.js"
 
 const router = express.Router();
 
